@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Dashboard de Análise de Campanhas</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0/dist/chart.umd.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        header {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        .subtitle {
+            color: #666;
+            font-size: 1.1em;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #764ba2;
+        }
+        .summary-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .summary-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #667eea;
+        }
+        .card-label {
+            font-size: 0.9em;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+        }
+        .card-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #333;
+        }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        .chart-container h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .chart-wrapper {
+            position: relative;
+            height: 300px;
+        }
+        .table-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            overflow-x: auto;
+        }
+        .table-container h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 10px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th {
+            background: #f5f5f5;
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #ddd;
+        }
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        tr:hover {
+            background: #f9f9f9;
+        }
+        .badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+        .badge.excellent {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .badge.good {
+            background: #bfdbfe;
+            color: #1e40af;
+        }
+        .badge.fair {
+            background: #fed7aa;
+            color: #7c2d12;
+        }
+        .badge.poor {
+            background: #fecaca;
+            color: #7f1d1d;
+        }
+        .recommendations {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+        .recommendation-item {
+            padding: 15px;
+            border-left: 4px solid #f59e0b;
+            background: #fef3c7;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #667eea;
+            font-size: 1.2em;
+        }
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+            h1 {
+                font-size: 1.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Dashboard de Análise de Campanhas</h1>
+            <p class="subtitle">Sistema de análise e otimização de campanhas Facebook/Instagram Ads</p>
+            <div class="controls">
+                <button onclick="loadData()">🔄 Atualizar Dados</button>
+                <button onclick="exportData()" class="secondary">📥 Exportar JSON</button>
+            </div>
+        </header>
+
+        <div id="loading" class="loading">
+            <p>⏳ Carregando dados...</p>
+        </div>
+
+        <div id="content" style="display:none;">
+            <div class="summary-cards">
+                <div class="summary-card">
+                    <div class="card-label">Total de Campanhas</div>
+                    <div class="card-value" id="totalCampaigns">0</div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-label">ROI Médio</div>
+                    <div class="card-value" id="avgROI">0%</div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-label">ROAS Médio</div>
+                    <div class="card-value" id="avgROAS">0</div>
+                </div>
+                <div class="summary-card">
+                    <div class="card-label">CTR Médio</div>
+                    <div class="card-value" id="avgCTR">0%</div>
+                </div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-container">
+                    <h3>📈 ROI por Campanha</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="roiChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>💰 Distribuição de Gasto</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="spendChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>🎯 ROAS por Campanha</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="roasChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <h3>👁️ CTR por Campanha</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="ctrChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <h3>📋 Detalhes de Campanhas</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Campanha</th>
+                            <th>Health Score</th>
+                            <th>ROI</th>
+                            <th>ROAS</th>
+                            <th>CTR</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="campaignsTable">
+                        <tr><td colspan="6" style="text-align:center;">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="recommendations">
+                <h3>💡 Recomendações</h3>
+                <div id="recommendationsDiv"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let roiChart, spendChart, roasChart, ctrChart;
+
+        async function loadData() {
+            const loading = document.getElementById('loading');
+            const content = document.getElementById('content');
+
+            loading.style.display = 'block';
+            content.style.display = 'none';
+
+            try {
+                const response = await fetch('/api/analysis/health-scores');
+                const data = await response.json();
+
+                if (data.health_scores && data.health_scores.length > 0) {
+                    displayData(data);
+                    content.style.display = 'block';
+                } else {
+                    alert('Nenhuma campanha encontrada. Configure seu Access Token no arquivo .env');
+                }
+            } catch (error) {
+                console.error('Erro ao carregar dados:', error);
+                alert('Erro ao carregar dados. Verifique o console.');
+            } finally {
+                loading.style.display = 'none';
+            }
+        }
+
+        function displayData(data) {
+            const scores = data.health_scores;
+
+            // Atualizar cards de resumo
+            document.getElementById('totalCampaigns').innerText = scores.length;
+            const avgROI = scores.reduce((acc, c) => acc + c.roi, 0) / scores.length;
+            const avgROAS = scores.reduce((acc, c) => acc + c.roas, 0) / scores.length;
+            const avgCTR = scores.reduce((acc, c) => acc + c.ctr, 0) / scores.length;
+
+            document.getElementById('avgROI').innerText = avgROI.toFixed(1) + '%';
+            document.getElementById('avgROAS').innerText = avgROAS.toFixed(2);
+            document.getElementById('avgCTR').innerText = avgCTR.toFixed(2) + '%';
+
+            // Preencher tabela
+            const tbody = document.getElementById('campaignsTable');
+            tbody.innerHTML = scores.map(campaign => `
+                <tr>
+                    <td>${campaign.campaign_name}</td>
+                    <td><strong>${campaign.health_score.toFixed(1)}</strong></td>
+                    <td>${campaign.roi.toFixed(2)}%</td>
+                    <td>${campaign.roas.toFixed(2)}</td>
+                    <td>${campaign.ctr.toFixed(2)}%</td>
+                    <td><span class="badge ${campaign.health_score >= 80 ? 'excellent' : campaign.health_score >= 60 ? 'good' : campaign.health_score >= 40 ? 'fair' : 'poor'}">
+                        ${campaign.health_score >= 80 ? 'Excelente' : campaign.health_score >= 60 ? 'Bom' : campaign.health_score >= 40 ? 'Aceitável' : 'Ruim'}
+                    </span></td>
+                </tr>
+            `).join('');
+
+            // Gráficos
+            updateCharts(scores);
+        }
+
+        function updateCharts(scores) {
+            const labels = scores.map(c => c.campaign_name);
+            const roiData = scores.map(c => c.roi);
+            const roasData = scores.map(c => c.roas);
+            const ctrData = scores.map(c => c.ctr);
+            const spendData = scores.map((c, i) => Math.random() * 5000); // Simulado
+
+            // ROI Chart
+            if (roiChart) roiChart.destroy();
+            roiChart = new Chart(document.getElementById('roiChart'), {
+                type: 'bar',
+                data: { labels, datasets: [{ label: 'ROI (%)', data: roiData, backgroundColor: '#667eea' }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // Spend Chart
+            if (spendChart) spendChart.destroy();
+            spendChart = new Chart(document.getElementById('spendChart'), {
+                type: 'pie',
+                data: { labels, datasets: [{ data: spendData, backgroundColor: ['#667eea', '#764ba2', '#f59e0b', '#ef4444', '#10b981'] }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // ROAS Chart
+            if (roasChart) roasChart.destroy();
+            roasChart = new Chart(document.getElementById('roasChart'), {
+                type: 'line',
+                data: { labels, datasets: [{ label: 'ROAS', data: roasData, borderColor: '#10b981', tension: 0.4 }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+
+            // CTR Chart
+            if (ctrChart) ctrChart.destroy();
+            ctrChart = new Chart(document.getElementById('ctrChart'), {
+                type: 'radar',
+                data: { labels, datasets: [{ label: 'CTR (%)', data: ctrData, borderColor: '#f59e0b', fill: true }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
+
+        function exportData() {
+            alert('Exportação em desenvolvimento. Use /api/export/metrics para dados JSON.');
+        }
+
+        // Carregar dados ao abrir a página
+        loadData();
+    </script>
+</body>
+</html>
